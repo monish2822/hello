@@ -1,0 +1,94 @@
+
+------creating a lambda function
+
+const hello = new lambda.Function(this, 'HelloHandler', {
+      runtime: lambda.Runtime.NODEJS_14_X,    
+      code: lambda.Code.fromAsset('./lambda'), 
+      handler: 'hello.handler'                
+
+    });
+	
+------creating a dynamodb table
+
+
+const table = new dynamodb.Table(this, 'Table', {
+  partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+});
+
+----granting permission to lambda fuction to readandwrite in dynamodb table
+
+const table = new dynamodb.Table(this, 'Table', {
+  partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+});
+table.grantReadWriteData(hello);
+
+
+
+------getting the list of s3 buckets in the account
+
+const {Aws}  = require('aws-cdk-lib');
+const { JsonableValue } = require("ts-jest");
+
+exports.handler = async (event)=> {
+    const s3=new Aws.S3();
+    const myBuckets= await s3.listBuckets().promise();
+    console.log(myBuckets);
+    const response={
+        statusCode:200,
+        body: JsonableValue.stringify('Hello'),
+    };
+    return response;
+  };
+
+
+
+---------storing list of s3 buckets data into dynamodb
+
+const {AWS}  = require('aws-cdk-lib');
+
+exports.handler = (event)=> {
+    AWS.config.update({region:'REGION'});
+    const dynamoDb = new AWS.DynamoDB({apiVersion:'2012-08-10'});
+    const s3=new Aws.S3();
+    s3.listBuckets(function(err, data) {
+  if (err) {
+    console.log("Error", err);
+  } else {
+    console.log("Success", data.Buckets);
+    let buckets = data.Buckets;
+    if( buckets != null ) {
+      for (let i = 0; i < buckets.length; i++) {
+        var params = {
+          TableName: 'BUCKET_LIST',
+          Item: {
+            'CreationDate' : {S: buckets[i].CreationDate},
+            'Name' : {S: buckets[i].Name}}
+        };
+        dynamoDb.putItem(params, function(err, data) {
+          if (err) {
+            console.log("Error", err);
+          } else {
+            console.log("Success", data);
+            }
+        });
+      }
+    }
+  }
+});
+    
+    const response={
+        statusCode:200,
+        body: JsonableValue.stringify('Hello'),
+    };
+    return response;
+  };
+
+
+
+
+
+
+
+
+
+
